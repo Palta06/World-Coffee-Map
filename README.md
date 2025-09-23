@@ -61,5 +61,7 @@ Proveer una **plataforma completa, intuitiva e interactiva** con información re
 
 ## Integrantes
 **Daniel Gajardo**
+
 **Bastián Guerra**
+
 **Benjamin Lillo**
