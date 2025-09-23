@@ -46,7 +46,7 @@ Proveer una **plataforma completa, intuitiva e interactiva** con información re
 
 ---
 
-## ⚙️ Instrucciones de ejecución
+## Instrucciones de ejecución
 
 1. **Clonar este repositorio**:
    ```bash
@@ -58,3 +58,8 @@ Proveer una **plataforma completa, intuitiva e interactiva** con información re
 
 3. **Ejecutar el proyecto**:
    ```python main.py
+
+## Integrantes
+**Daniel Gajardo**
+**Bastián Guerra**
+**Benjamin Lillo**
