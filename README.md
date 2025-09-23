@@ -54,7 +54,7 @@ Proveer una **plataforma completa, intuitiva e interactiva** con información re
    cd <nombre-del-proyecto>
 
 2. **Instalar Dependencias (en caso de usar Python)**:
-   pip install -r requirements.txt (falta ver cuales extensiones ocuparemos)
+   ```pip install -r requirements.txt (falta ver cuales extensiones ocuparemos)
 
 3. **Ejecutar el proyecto**:
-   python main.py
+   ```python main.py
