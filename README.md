@@ -7,6 +7,7 @@
 Este proyecto busca resolver la problemática de la **falta de una plataforma que centralice datos abiertos** sobre la producción, comercialización y distribución del café a nivel mundial.  
 
 Actualmente, la toma de decisiones estratégicas en este mercado se ve limitada por la **escasez de análisis amplios y objetivos** basados en datos disponibles. Nuestro sistema propone una solución que entregue **insights, evaluaciones y métricas financieras** sobre el mercado del café a nivel global, utilizando información de la **International Coffee Organization (ICO)** recopilada y publicada en **Kaggle**.
+Además, la plataforma contará con un mapa de datos geoespaciales interactivo, que permitirá a los usuarios explorar y acceder a los indicadores de cada país de manera visual, facilitando la comparación y el análisis global.
 
 ### Limitaciones
 - La solución se restringe al uso de información pública disponible.
@@ -18,6 +19,7 @@ Proveer una **plataforma completa, intuitiva e interactiva** con información re
 - Evaluaciones comparativas entre países.
 - Insights sobre tendencias globales.
 - Métricas de producción, consumo, importación, exportación e inventarios de café verde.
+- Una experiencia de exploración mediante un mapa geoespacial interactivo.
 
 ---
 
