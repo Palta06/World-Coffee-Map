@@ -1,69 +1,39 @@
-# World-Coffee-Map
-
-# Plataforma de Análisis del Mercado Global del Café
+# World-Coffee-Map  
+### Plataforma de Análisis del Mercado Global del Café
 
 ## Descripción
+Este proyecto busca centralizar datos abiertos sobre producción, consumo y comercio de café a nivel mundial, entregando análisis y métricas financieras para la toma de decisiones.  
 
-Este proyecto busca resolver la problemática de la **falta de una plataforma que centralice datos abiertos** sobre la producción, comercialización y distribución del café a nivel mundial.  
+La información proviene de la [International Coffee Organization (ICO)](https://ico.org/) y está disponible en [Kaggle - Coffee Dataset](https://www.kaggle.com/datasets/michals22/coffee-dataset).  
+La plataforma incluye un mapa geoespacial interactivo que facilita la comparación de indicadores por país.
 
-Actualmente, la toma de decisiones estratégicas en este mercado se ve limitada por la **escasez de análisis amplios y objetivos** basados en datos disponibles. Nuestro sistema propone una solución que entregue **insights, evaluaciones y métricas financieras** sobre el mercado del café a nivel global, utilizando información de la **International Coffee Organization (ICO)** recopilada y publicada en **Kaggle**.
-Además, la plataforma contará con un mapa de datos geoespaciales interactivo, que permitirá a los usuarios explorar y acceder a los indicadores de cada país de manera visual, facilitando la comparación y el análisis global.
+## Base de Datos
+- **Fuente:** [Coffee Dataset - Michał Sikora](https://www.kaggle.com/datasets/michals22/coffee-dataset)  
+- **Origen:** [International Coffee Organization (ICO)](https://ico.org/)  
+- **Cobertura:** 1990–2020, 55 países  
+- **Licencia:** CC0: Public Domain  
 
-### Limitaciones
-- La solución se restringe al uso de información pública disponible.
-- El análisis se realiza a nivel **global y por país**, sin acceso a datos particulares de empresas específicas.
-- Los resultados se orientan a **decisiones estratégicas generales** y no a estrategias operativas individuales.
-
-### Objetivo
-Proveer una **plataforma completa, intuitiva e interactiva** con información relevante sobre el mercado del café, que permita a los usuarios obtener:
-- Evaluaciones comparativas entre países.
-- Insights sobre tendencias globales.
-- Métricas de producción, consumo, importación, exportación e inventarios de café verde.
-- Una experiencia de exploración mediante un mapa geoespacial interactivo.
-
----
-
-## Base de Datos Utilizada
-
-**Fuente:** [Coffee Dataset - Michał Sikora (Kaggle)](https://www.kaggle.com/datasets/michals22/coffee-dataset)  
-**Origen de los datos:** International Coffee Organization (ICO - [ico.org](https://ico.org/))  
-**Cobertura temporal:** 1990 - 2020  
-**Cobertura geográfica:** 55 países  
-**Licencia:** CC0: Public Domain  
-
-### Tablas principales
-- **Consumo Doméstico**: 33 columnas × 55 filas  
-- **Exportación**: 32 columnas × 55 filas  
-- **Inventario de Café Verde**: 32 columnas × 18 filas  
-- **Importación**: 32 columnas × 35 filas  
-- **Consumo de Importación**: 32 columnas × 35 filas  
-- **Producción**: 33 columnas × 55 filas  
-- **Re-Exportación**: 32 columnas × 35 filas  
-
-**Formato general de las tablas:**
-
-| País     | Tipo de Café | 1990     | 1991     | ... | 2019     | 2020     |
-|----------|-------------|----------|----------|-----|----------|----------|
-| Austria  | Arabica     | 1500000  | 1600000  | ... | 2500000  | 2300000  |
-
----
-
-## Instrucciones de ejecución
-
-1. **Clonar este repositorio**:
+## Ejecución
+1. Clonar el repositorio  
    ```bash
    git clone <url-del-repo>
    cd <nombre-del-proyecto>
 
-2. **Instalar Dependencias (en caso de usar Python) (falta ver cuales extensiones ocuparemos)**:
-   ```pip install -r requirements.txt
+2. Instalar dependencias (ejemplo con Python)
+   ```bash
+   pip install -r requirements.txt
 
-3. **Ejecutar el proyecto**:
-   ```python main.py
+3. Ejecutar el proyecto
+   ```bash
+   python main.py
 
-## Integrantes
+### Integrantes
+
 **Daniel Gajardo**
 
 **Bastián Guerra**
 
-**Benjamin Lillo**
+**Benjamín Lillo**
+
+
+
