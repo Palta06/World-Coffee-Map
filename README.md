@@ -27,13 +27,10 @@ La plataforma incluye un mapa geoespacial interactivo que facilita la comparaci�
    ```bash
    python main.py
 
-### Integrantes
+## Integrantes
 
 **Daniel Gajardo**
 
 **Bastián Guerra**
 
 **Benjamín Lillo**
-
-
-
