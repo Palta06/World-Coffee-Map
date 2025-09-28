@@ -13,6 +13,14 @@ La plataforma incluye un mapa geoespacial interactivo que facilita la comparaci�
 - **Cobertura:** 1990–2020, 55 países  
 - **Licencia:** CC0: Public Domain  
 
+## Documentación 
+
+- [Base de Datos](docs/DATA_SOURCE.md)
+- [Paradigmas](docs/PARADIGM.md)
+- [Problema a Resolver](docs/PROBLEM_STATEMENT.md)
+- [Arquitectura](docs/ARQUITECTURA.png)
+- [Prototipo](docs/PROTOTIPO)
+
 ## Ejecución
 1. Clonar el repositorio  
    ```bash
