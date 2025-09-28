@@ -19,7 +19,7 @@ La plataforma incluye un mapa geoespacial interactivo que facilita la comparaci√
 - [Paradigmas](docs/PARADIGM.md)
 - [Problema a Resolver](docs/PROBLEM_STATEMENT.md)
 - [Arquitectura](docs/ARQUITECTURA.png)
-- [Prototipo](docs/PROTOTIPO)
+- [Prototipo](docs/PROTOTIPO.md)
 
 ## Ejecuci√≥n
 1. Clonar el repositorio  
