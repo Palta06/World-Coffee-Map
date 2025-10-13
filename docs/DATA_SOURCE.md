@@ -29,3 +29,9 @@ La mayoría de las tablas siguen el siguente formato
 | Austria | Arabica      | 1500000 | 1600000  | ... | 2500000 | 2300000 |
 | ...     | ...          | ...     | ...      | ... | ...     | ...     |
 
+---
+
+## FUENTES DE DATOS SECUNDARIOS
+
+- Countries GeoJson: https://github.com/johan/world.geo.json
+
