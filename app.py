@@ -29,18 +29,17 @@ def strip_accents(s: str) -> str:
     return ''.join([c for c in nfkd if not unicodedata.combining(c)])
 
 def normalize_name_for_match(s: str) -> str:
-    """Normaliza un nombre quitando acentos, paréntesis, artículos comunes, puntuación y lowercasing."""
     if not isinstance(s, str):
         return ""
     s = s.strip()
-    s = re.sub(r'\(.*?\)', '', s)                
-    s = strip_accents(s)                        
+    s = re.sub(r'\(.*?\)', '', s)
+    s = strip_accents(s)
     s = s.replace('&', 'and')
     s = s.replace('-', ' ')
     s = s.replace('/', ' ')
-    s = re.sub(r'[^0-9A-Za-z\s]', '', s)         
+    s = re.sub(r'[^0-9A-Za-z\s]', '', s)
     s = re.sub(r'\b(the|of|and|de|del|la|el|plurinational|state)\b', '', s, flags=re.I)
-    s = re.sub(r'\s+', ' ', s)                  
+    s = re.sub(r'\s+', ' ', s)
     return s.strip().lower()
 
 def detect_country_column(df: pd.DataFrame) -> str:
@@ -59,24 +58,16 @@ def detect_country_column(df: pd.DataFrame) -> str:
     return None
 
 def detect_year_columns(columns) -> list:
-    """Detecta columnas que parezcan años (1990, 1990/91, 1990-91, etc.)"""
     year_regex = re.compile(r'^\s*\d{4}(\s*[-/]\s*\d{2,4})?\s*$')
     return [c for c in columns if isinstance(c, str) and year_regex.match(c.strip())]
 
 def year_label_to_int(label: str) -> int:
-    """Extrae el año inicial como entero para ordenar: '1990/91'->1990, '1990'->1990"""
     if not isinstance(label, str):
         return 9999
     m = re.match(r'^\s*(\d{4})', label)
     return int(m.group(1)) if m else 9999
 
 def build_country_map(csv_countries, geo_countries, cutoff=0.7):
-    """
-    Crea un mapping csv_name -> geo_name intentando:
-    1) match exacto
-    2) match por normalized name exacto
-    3) fuzzy match sobre normalized names
-    """
     geo_norm = {n: normalize_name_for_match(n) for n in geo_countries}
     norm_to_geo = {}
     for geo, n in geo_norm.items():
@@ -89,9 +80,8 @@ def build_country_map(csv_countries, geo_countries, cutoff=0.7):
             mapping[c] = c
             continue
         c_norm = normalize_name_for_match(c)
-       
+        
         if c_norm in norm_to_geo:
-           
             mapping[c] = norm_to_geo[c_norm][0]
             continue
 
@@ -194,11 +184,10 @@ df_filtered = df_long[mask].copy()
 
 map_df = df_filtered.groupby("Country", as_index=False)["value"].sum()
 
-
 csv_countries = map_df["Country"].dropna().unique().tolist()
 country_map = build_country_map(csv_countries, geo_names, cutoff=0.7)
 map_df["geo_name"] = map_df["Country"].map(country_map)
-
+ 
 
 map_df["plot_location"] = map_df["geo_name"].where(map_df["geo_name"].notna(), map_df["Country"])
 
@@ -218,6 +207,152 @@ fig.update_geos(showcountries=True, showcoastlines=True, showland=True)
 fig.update_layout(margin={"r":0,"t":60,"l":0,"b":0}, coloraxis_colorbar=dict(title="Valor"))
 
 
+st.markdown("## 📈 Métricas Globales de Café")
+
+total_global = df_filtered["value"].sum() / 1_000_000
+pais_principal = map_df.nlargest(1, "value").iloc[0]
+valor_principal = pais_principal['value'] / 1_000_000
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(
+        label="Total Global",
+        value=f"{total_global:.1f}M bolsas",
+        help="Total de bolsas de café a nivel mundial (en millones)"
+    )
+
+with col2:
+    st.metric(
+        label="Principal País",
+        value=f"{pais_principal['Country']}",
+        delta=f"{valor_principal:.1f}M bolsas",
+        help=f"País con mayor {metric.lower()} de café (en millones de bolsas)"
+    )
+ 
+
 st.markdown("## ☕ Coffee World Map")
 st.write(f"**Métrica:** {metric}    •    **Año:** {selected_year}" + (f"    •    **Tipo:** {selected_type}" if selected_type != "Todos" else ""))
 st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("## 📊 Top 10 Países")
+
+chart_data = map_df.sort_values("value", ascending=False).head(10)
+
+chart_data = chart_data.copy()
+chart_data['value_m'] = chart_data['value'] / 1_000_000
+
+bar_fig = px.bar(
+    chart_data,
+    y="Country",
+    x="value_m",
+    orientation='h',
+    title=f"Top 10 Países - {metric} ({selected_year})" + (f" - {selected_type}" if selected_type != "Todos" else ""),
+    labels={"Country": "País", "value_m": f"Millones de bolsas"},
+    text="value_m"
+)
+
+bar_fig.update_traces(
+    texttemplate='%{text:.1f}M',
+    textposition='auto',
+    marker_color='#1f77b4'
+)
+
+bar_fig.update_layout(
+    showlegend=False,
+    margin=dict(l=200, r=20, t=50, b=20),
+    height=400
+)
+
+st.plotly_chart(bar_fig, use_container_width=True)
+
+st.markdown("---")
+
+st.markdown(f"## 📈 Tendencia Histórica de {metric} Mundial")
+
+if selected_type != "Todos" and "Coffee type" in df_long.columns:
+    title_suffix = f" ({selected_type})"
+    df_trend = df_long[df_long["Coffee type"].fillna("").str.strip().str.lower() == selected_type.strip().lower()]
+else:
+    title_suffix = ""
+    df_trend = df_long
+
+historical_data = df_trend.groupby('year_label')['value'].sum().reset_index()
+historical_data['value_m'] = historical_data['value'] / 1_000_000
+
+trend_fig = px.line(
+    historical_data,
+    x='year_label',
+    y='value_m',
+    title=f'Evolución del {metric} Mundial de Café{title_suffix}',
+    labels={'year_label': 'Año', 'value_m': 'Millones de bolsas'},
+    markers=True
+)
+
+trend_fig.update_traces(
+    line_color='#1f77b4',
+    marker=dict(size=8),
+    hovertemplate=f'Año: %{{x}}<br>{metric}: %{{y:.1f}}M bolsas<extra></extra>'
+)
+
+trend_fig.update_layout(
+    xaxis_title='Año',
+    yaxis_title='Millones de bolsas',
+    showlegend=False,
+    hovermode='x unified'
+)
+
+st.plotly_chart(trend_fig, use_container_width=True)
+
+if metric == "Exportación":
+    def compute_total_from_file(path, year_label, coffee_type=None):
+        df_local = load_csv(path)
+        country_col_local = detect_country_column(df_local)
+        if country_col_local and country_col_local != "Country":
+            df_local = df_local.rename(columns={country_col_local: "Country"})
+        if "Coffee Type" in df_local.columns and "Coffee type" not in df_local.columns:
+            df_local = df_local.rename(columns={"Coffee Type": "Coffee type"})
+        if "Coffee type" in df_local.columns:
+            df_local["Coffee type"] = df_local["Coffee type"].astype(str).apply(lambda x: x.strip() if pd.notna(x) else x)
+        year_cols_local = detect_year_columns(df_local.columns)
+        if not year_cols_local:
+            return 0.0
+        if year_label not in year_cols_local:
+            matches = [c for c in year_cols_local if c.strip().startswith(year_label.strip())]
+            if matches:
+                year_label_use = matches[0]
+            else:
+                return 0.0
+        else:
+            year_label_use = year_label
+        id_vars_local = ["Country"]
+        if "Coffee type" in df_local.columns:
+            id_vars_local.append("Coffee type")
+        df_long_local = df_local.melt(id_vars=id_vars_local, value_vars=year_cols_local, var_name="year_label", value_name="value")
+        df_long_local["value"] = pd.to_numeric(df_long_local["value"], errors="coerce")
+        mask_local = df_long_local["year_label"] == year_label_use
+        if coffee_type:
+            mask_local = mask_local & (df_long_local["Coffee type"].fillna("").str.strip().str.lower() == coffee_type.strip().lower())
+        return df_long_local.loc[mask_local, "value"].sum()
+
+    coffee_type_arg = selected_type if selected_type != "Todos" else None
+    prod_total = compute_total_from_file(DATA_DIR / "Coffee_production.csv", selected_year, coffee_type_arg)
+    export_total = compute_total_from_file(DATA_DIR / "Coffee_export.csv", selected_year, coffee_type_arg)
+    domestic_total = max(0.0, prod_total - export_total)
+
+    donut_df = pd.DataFrame({
+        "category": ["Consumo Interno", "Exportado"],
+        "value": [domestic_total, export_total]
+    })
+    donut_df["value_m"] = donut_df["value"] / 1_000_000
+
+    donut_fig = px.pie(
+        donut_df,
+        names="category",
+        values="value_m",
+        hole=0.5,
+        title=f"Proporción: Consumo Interno vs Exportaciones ({selected_year})" + (f" - {selected_type}" if selected_type != "Todos" else "")
+    )
+    donut_fig.update_traces(textinfo="label+percent", hovertemplate='%{label}: %{value:.1f}M bolsas (%{percent})')
+    donut_fig.update_layout(margin=dict(t=50, b=20), showlegend=True)
+    st.plotly_chart(donut_fig, use_container_width=True)
