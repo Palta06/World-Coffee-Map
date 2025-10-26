@@ -1,6 +1,9 @@
 # World-Coffee-Map  
 ### Plataforma de Análisis del Mercado Global del Café
 
+> [!NOTE]
+> Revisa nuestro [Reporte de Avance II](docs/REPORT_II.md)
+
 ## Descripción
 Este proyecto busca centralizar datos abiertos sobre producción, consumo y comercio de café a nivel mundial, entregando análisis y métricas financieras para la toma de decisiones.  
 

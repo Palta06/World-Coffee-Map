@@ -10,9 +10,6 @@ import unicodedata
 
 st.set_page_config(page_title="Coffee World Map", layout="wide")
 
-BASE = Path(__file__).parent
-DATA_DIR = BASE / "data"
-
 @st.cache_data
 def load_geojson(path: Path):
     with open(path, "r", encoding="utf-8") as f:
@@ -22,25 +19,56 @@ def load_geojson(path: Path):
 def load_csv(path: Path):
     return pd.read_csv(path)
 
-def strip_accents(s: str) -> str:
-    if not isinstance(s, str):
-        return s
-    nfkd = unicodedata.normalize('NFKD', s)
-    return ''.join([c for c in nfkd if not unicodedata.combining(c)])
+class DataCleaner:
 
-def normalize_name_for_match(s: str) -> str:
-    if not isinstance(s, str):
-        return ""
-    s = s.strip()
-    s = re.sub(r'\(.*?\)', '', s)
-    s = strip_accents(s)
-    s = s.replace('&', 'and')
-    s = s.replace('-', ' ')
-    s = s.replace('/', ' ')
-    s = re.sub(r'[^0-9A-Za-z\s]', '', s)
-    s = re.sub(r'\b(the|of|and|de|del|la|el|plurinational|state)\b', '', s, flags=re.I)
-    s = re.sub(r'\s+', ' ', s)
-    return s.strip().lower()
+    def strip_accents(self, s: str) -> str:
+        if not isinstance(s, str):
+            return s
+        nfkd = unicodedata.normalize('NFKD', s)
+        return ''.join([c for c in nfkd if not unicodedata.combining(c)])
+
+    def normalize_name_for_match(self, s: str) -> str:
+        if not isinstance(s, str):
+            return ""
+        s = s.strip()
+        s = re.sub(r'\(.*?\)', '', s)
+        s = self.strip_accents(s)
+        s = s.replace('&', 'and')
+        s = s.replace('-', ' ')
+        s = s.replace('/', ' ')
+        s = re.sub(r'[^0-9A-Za-z\s]', '', s)
+        s = re.sub(r'\b(the|of|and|de|del|la|el|plurinational|state)\b', '', s, flags=re.I)
+        s = re.sub(r'\s+', ' ', s)
+        return s.strip().lower()
+    
+    
+class DataLoader:
+
+    def __init__(self, base):
+        self.data_dir = base / "data"
+
+        self.geojson_path = self.data_dir / "countries.geo.json"
+        self.countries_geo = load_geojson(self.geojson_path)
+        self.geo_names = self.get_geo_names()
+
+        self.files = {
+                "Producción": self.data_dir / "Coffee_production.csv",
+                "Consumo": self.data_dir / "Coffee_domestic_consumption.csv",
+                "Exportación": self.data_dir / "Coffee_export.csv",
+            }
+
+    def get_geo_names(self):
+        geo_names = []
+        for feat in self.countries_geo.get("features", []):
+            prop = feat.get("properties", {})
+            name = prop.get("name") or prop.get("NAME") or prop.get("ADMIN") or prop.get("ADMIN_NAME") or prop.get("Country")
+            if name:
+                geo_names.append(name)
+        return geo_names
+
+    
+cleaner = DataCleaner()
+loader = DataLoader(Path(__file__).parent)
 
 def detect_country_column(df: pd.DataFrame) -> str:
     candidates = ["Country", "country", "Country or Area", "Country or area", "Country/Area", "country/area",
@@ -68,7 +96,7 @@ def year_label_to_int(label: str) -> int:
     return int(m.group(1)) if m else 9999
 
 def build_country_map(csv_countries, geo_countries, cutoff=0.7):
-    geo_norm = {n: normalize_name_for_match(n) for n in geo_countries}
+    geo_norm = {n: cleaner.normalize_name_for_match(n) for n in geo_countries}
     norm_to_geo = {}
     for geo, n in geo_norm.items():
         if n:
@@ -79,7 +107,7 @@ def build_country_map(csv_countries, geo_countries, cutoff=0.7):
         if c in geo_countries:
             mapping[c] = c
             continue
-        c_norm = normalize_name_for_match(c)
+        c_norm = cleaner.normalize_name_for_match(c)
         
         if c_norm in norm_to_geo:
             mapping[c] = norm_to_geo[c_norm][0]
@@ -93,29 +121,12 @@ def build_country_map(csv_countries, geo_countries, cutoff=0.7):
             mapping[c] = None
     return mapping
 
-
-geojson_path = DATA_DIR / "countries.geo.json"
-countries_geo = load_geojson(geojson_path)
-
-geo_names = []
-for feat in countries_geo.get("features", []):
-    prop = feat.get("properties", {})
-    name = prop.get("name") or prop.get("NAME") or prop.get("ADMIN") or prop.get("ADMIN_NAME") or prop.get("Country")
-    if name:
-        geo_names.append(name)
-
-FILES = {
-    "Producción": DATA_DIR / "Coffee_production.csv",
-    "Consumo": DATA_DIR / "Coffee_domestic_consumption.csv",
-    "Exportación": DATA_DIR / "Coffee_export.csv",
-}
-
 st.sidebar.title("Coffee World Map")
 st.sidebar.markdown("### Filtros")
 
-metric = st.sidebar.selectbox("Seleccionar Métrica:", list(FILES.keys()))
+metric = st.sidebar.selectbox("Seleccionar Métrica:", list(loader.files.keys()))
 
-csv_path = FILES[metric]
+csv_path = loader.files[metric]
 df_raw = load_csv(csv_path)
 
 country_col = 'Country'
@@ -166,69 +177,73 @@ df_filtered = df_long[mask].copy()
 map_df = df_filtered.groupby("Country", as_index=False)["value"].sum()
 
 csv_countries = map_df["Country"].dropna().unique().tolist()
-country_map = build_country_map(csv_countries, geo_names, cutoff=0.7)
+country_map = build_country_map(csv_countries, loader.geo_names, cutoff=0.7)
 map_df["geo_name"] = map_df["Country"].map(country_map)
  
 
 map_df["plot_location"] = map_df["geo_name"].where(map_df["geo_name"].notna(), map_df["Country"])
 
-
-fig = px.choropleth(
-    map_df,
-    geojson=countries_geo,
-    locations="plot_location",
-    featureidkey="properties.name",
-    color="value",
-    hover_name="Country",
-    projection="natural earth",
-    title=f"{metric} - {selected_year}" + (f" ({selected_type})" if selected_type != "Todos" else "")
-)
-
-fig.update_geos(showcountries=True, showcoastlines=True, showland=True)
-fig.update_layout(margin={"r":0,"t":60,"l":0,"b":0}, coloraxis_colorbar=dict(title="Valor"))
-
-
 st.markdown("## ☕ Coffee World Map")
 st.write(f"**Métrica:** {metric}    •    **Año:** {selected_year}" + (f"    •    **Tipo:** {selected_type}" if selected_type != "Todos" else ""))
 
-event = st.plotly_chart(fig, config=dict(selection_mode=["points","box","lasso"]), on_select="rerun")
-if len(event.selection.points):
-    selected_point = event.selection.points[0]
-    selected_country = selected_point['properties']['name']
-    st.markdown(f'**Pais seleccionado: {selected_country}**')
+center_column, right_column = st.columns([3, 2])
 
-st.markdown("## 📊 Top 10 Países")
+with center_column:
+    fig = px.choropleth(
+        map_df,
+        geojson=loader.countries_geo,
+        locations="plot_location",
+        featureidkey="properties.name",
+        color="value",
+        hover_name="Country",
+        projection="natural earth",
+        title=f"{metric} - {selected_year}" + (f" ({selected_type})" if selected_type != "Todos" else "")
+    )
 
-chart_data = map_df.sort_values("value", ascending=False).head(10)
+    fig.update_geos(showcountries=True, showcoastlines=True, showland=True)
+    fig.update_layout(margin={"r":0,"t":60,"l":0,"b":0}, coloraxis_colorbar=dict(title="Valor"))
 
-chart_data = chart_data.copy()
-chart_data['value_m'] = chart_data['value'] / 1_000_000
 
-bar_fig = px.bar(
-    chart_data,
-    y="Country",
-    x="value_m",
-    orientation='h',
-    title=f"Top 10 Países - {metric} ({selected_year})" + (f" - {selected_type}" if selected_type != "Todos" else ""),
-    labels={"Country": "País", "value_m": f"Millones de bolsas"},
-    text="value_m"
-)
 
-bar_fig.update_traces(
-    texttemplate='%{text:.1f}M',
-    textposition='auto',
-    marker_color='#1f77b4'
-)
+    event = st.plotly_chart(fig, config=dict(selection_mode=["points","box","lasso"]), on_select="rerun")
+    if len(event.selection.points):
+        selected_point = event.selection.points[0]
+        selected_country = selected_point['properties']['name']
+        st.markdown(f'**Pais seleccionado: {selected_country}**')
 
-bar_fig.update_layout(
-    showlegend=False,
-    margin=dict(l=200, r=20, t=50, b=20),
-    height=400
-)
+with right_column:
 
-st.plotly_chart(bar_fig, use_container_width=True)
+    st.markdown("## 📊 Top 10 Países")
 
-st.markdown("---")
+    chart_data = map_df.sort_values("value", ascending=False).head(10)
+
+    chart_data = chart_data.copy()
+    chart_data['value_m'] = chart_data['value'] / 1_000_000
+
+    bar_fig = px.bar(
+        chart_data,
+        y="Country",
+        x="value_m",
+        orientation='h',
+        title=f"Top 10 Países - {metric} ({selected_year})" + (f" - {selected_type}" if selected_type != "Todos" else ""),
+        labels={"Country": "País", "value_m": f"Millones de bolsas"},
+        text="value_m"
+    )
+
+    bar_fig.update_traces(
+        texttemplate='%{text:.1f}M',
+        textposition='auto',
+        marker_color='#1f77b4'
+    )
+
+    bar_fig.update_layout(
+        showlegend=False,
+        margin=dict(l=200, r=20, t=50, b=20),
+        height=400
+    )
+
+    st.plotly_chart(bar_fig, use_container_width=True)
+
 
 st.markdown(f"## 📈 Tendencia Histórica de {metric} Mundial")
 
@@ -298,8 +313,8 @@ if metric == "Exportación":
         return df_long_local.loc[mask_local, "value"].sum()
 
     coffee_type_arg = selected_type if selected_type != "Todos" else None
-    prod_total = compute_total_from_file(DATA_DIR / "Coffee_production.csv", selected_year, coffee_type_arg)
-    export_total = compute_total_from_file(DATA_DIR / "Coffee_export.csv", selected_year, coffee_type_arg)
+    prod_total = compute_total_from_file(loader.data_dir / "Coffee_production.csv", selected_year, coffee_type_arg)
+    export_total = compute_total_from_file(loader.data_dir / "Coffee_export.csv", selected_year, coffee_type_arg)
     domestic_total = max(0.0, prod_total - export_total)
 
     donut_df = pd.DataFrame({
