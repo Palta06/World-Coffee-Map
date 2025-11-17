@@ -122,7 +122,6 @@ def build_country_map(csv_countries, geo_countries, cutoff=0.7):
     return mapping
 
 st.sidebar.title("Coffee World Map")
-st.sidebar.markdown("### Filtros")
 
 metric = st.sidebar.selectbox("Seleccionar Métrica:", list(loader.files.keys()))
 
@@ -150,13 +149,12 @@ if not year_cols:
 df_long = df_raw.melt(id_vars=id_vars, value_vars=year_cols, var_name="year_label", value_name="value")
 
 df_long["value"] = pd.to_numeric(df_long["value"], errors="coerce")
-df_long["year_int"] = df_long["year_label"].apply(utils.year_label_to_int)
+df_long["year"] = df_long["year_label"].apply(utils.year_label_to_int)
+df_long = df_long.drop('year_label', axis=1)
+
 df_long["Country"] = df_long["Country"].astype(str).str.strip()
-
-
-years_ordered = (df_long[["year_label","year_int"]].drop_duplicates().sort_values("year_int")["year_label"].tolist())
-selected_year = st.sidebar.selectbox("Seleccionar Año:", years_ordered, index=len(years_ordered)-1, disabled=True)
-
+years_ordered = (df_long["year"].drop_duplicates().sort_values().tolist())
+selected_year = st.sidebar.selectbox("Seleccionar Año:", years_ordered, index=len(years_ordered)-1)
 
 if "Coffee type" in df_long.columns:
     types_present = sorted(df_long["Coffee type"].dropna().unique().tolist())
@@ -169,7 +167,7 @@ else:
     selected_type = "Todos"
 
 
-mask = df_long["year_label"] == selected_year
+mask = df_long["year"] == selected_year
 if selected_type != "Todos" and "Coffee type" in df_long.columns:
     mask = mask & (df_long["Coffee type"].fillna("").str.strip().str.lower() == selected_type.strip().lower())
 
@@ -183,8 +181,7 @@ map_df["geo_name"] = map_df["Country"].map(country_map)
 
 map_df["plot_location"] = map_df["geo_name"].where(map_df["geo_name"].notna(), map_df["Country"])
 
-st.markdown("## ☕ Coffee World Map")
-st.write(f"**Métrica:** {metric}    •    **Año:** {selected_year}" + (f"    •    **Tipo:** {selected_type}" if selected_type != "Todos" else ""))
+# st.write(f"**Métrica:** {metric}    •    **Año:** {selected_year}" + (f"    •    **Tipo:** {selected_type}" if selected_type != "Todos" else ""))
 
 center_column, right_column = st.columns([3, 2])
 
@@ -200,10 +197,12 @@ with center_column:
         title=f"{metric} - {selected_year}" + (f" ({selected_type})" if selected_type != "Todos" else "")
     )
 
-    fig.update_geos(showcountries=True, showcoastlines=True, showland=True)
-    fig.update_layout(margin={"r":0,"t":60,"l":0,"b":0}, coloraxis_colorbar=dict(title="Valor"))
-
-
+    fig.update_geos(showcountries=False, showcoastlines=False, showland=True, bgcolor="#2c2f33")
+    fig.update_layout(
+        margin={"r":0,"t":60,"l":0,"b":0},
+        coloraxis_colorbar=dict(title="Valor")
+    )
+    fig.update_coloraxes(showscale=False)
 
     event = st.plotly_chart(fig, config=dict(selection_mode=["points","box","lasso"]), on_select="rerun")
     if len(event.selection.points):
@@ -213,9 +212,10 @@ with center_column:
 
 with right_column:
 
-    st.markdown("## 📊 Top 10 Países")
+    label_dict = { 'Producción': 'Productores', 'Consumo': 'en Consumo', 'Exportación': 'Exportadores' } 
+    st.markdown(f"## Top 10 Países {label_dict.get(metric, '')}")
 
-    chart_data = map_df.sort_values("value", ascending=False).head(10)
+    chart_data = map_df.sort_values("value", ascending=True).head(10)
 
     chart_data = chart_data.copy()
     chart_data['value_m'] = chart_data['value'] / 1_000_000
@@ -225,7 +225,6 @@ with right_column:
         y="Country",
         x="value_m",
         orientation='h',
-        title=f"Top 10 Países - {metric} ({selected_year})" + (f" - {selected_type}" if selected_type != "Todos" else ""),
         labels={"Country": "País", "value_m": f"Millones de bolsas"},
         text="value_m"
     )
@@ -244,9 +243,6 @@ with right_column:
 
     st.plotly_chart(bar_fig, use_container_width=True)
 
-
-st.markdown(f"## 📈 Tendencia Histórica de {metric} Mundial")
-
 if selected_type != "Todos" and "Coffee type" in df_long.columns:
     title_suffix = f" ({selected_type})"
     df_trend = df_long[df_long["Coffee type"].fillna("").str.strip().str.lower() == selected_type.strip().lower()]
@@ -254,15 +250,15 @@ else:
     title_suffix = ""
     df_trend = df_long
 
-historical_data = df_trend.groupby('year_label')['value'].sum().reset_index()
+historical_data = df_trend.groupby('year')['value'].sum().reset_index()
 historical_data['value_m'] = historical_data['value'] / 1_000_000
 
 trend_fig = px.line(
     historical_data,
-    x='year_label',
+    x='year',
     y='value_m',
-    title=f'Evolución del {metric} Mundial de Café{title_suffix}',
-    labels={'year_label': 'Año', 'value_m': 'Millones de bolsas'},
+    title=f'Tendencia Histórica de {metric} Mundial{title_suffix}',
+    labels={'year': 'Año', 'value_m': 'Millones de bolsas'},
     markers=True
 )
 
@@ -279,7 +275,8 @@ trend_fig.update_layout(
     hovermode='x unified'
 )
 
-st.plotly_chart(trend_fig, use_container_width=True)
+trend_col, pie_col = st.columns([3, 2])
+trend_col.plotly_chart(trend_fig, use_container_width=True)
 
 if metric == "Exportación":
     def compute_total_from_file(path, year_label, coffee_type=None):
@@ -295,7 +292,7 @@ if metric == "Exportación":
         if not year_cols_local:
             return 0.0
         if year_label not in year_cols_local:
-            matches = [c for c in year_cols_local if c.strip().startswith(year_label.strip())]
+            matches = [c for c in year_cols_local if c.strip().startswith(str(year_label).strip())]
             if matches:
                 year_label_use = matches[0]
             else:
@@ -332,4 +329,4 @@ if metric == "Exportación":
     )
     donut_fig.update_traces(textinfo="label+percent", hovertemplate='%{label}: %{value:.1f}M bolsas (%{percent})')
     donut_fig.update_layout(margin=dict(t=50, b=20), showlegend=True)
-    st.plotly_chart(donut_fig, use_container_width=True)
+    pie_col.plotly_chart(donut_fig, use_container_width=True)

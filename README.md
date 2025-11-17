@@ -2,7 +2,7 @@
 ### Plataforma de Análisis del Mercado Global del Café
 
 > [!NOTE]
-> Revisa nuestro [Reporte de Avance II](docs/REPORT_II.md)
+> Revisa nuestro [Reporte de Avance III](docs/REPORT_III.md)
 
 ## Descripción
 Este proyecto busca centralizar datos abiertos sobre producción, consumo y comercio de café a nivel mundial, entregando análisis y métricas financieras para la toma de decisiones.  
@@ -27,8 +27,8 @@ La plataforma incluye un mapa geoespacial interactivo que facilita la comparaci�
 ## Ejecución
 1. Clonar el repositorio  
    ```bash
-   git clone <url-del-repo>
-   cd <nombre-del-proyecto>
+   git clone https://github.com/Palta06/World-Coffee-Map.git
+   cd World-Coffee-Map
 
 2. Instalar dependencias (ejemplo con Python)
    ```bash
