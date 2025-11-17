@@ -21,7 +21,7 @@ La plataforma incluye un mapa geoespacial interactivo que facilita la comparaci√
 - [Base de Datos](docs/DATA_SOURCE.md)
 - [Paradigmas](docs/PARADIGM.md)
 - [Problema a Resolver](docs/PROBLEM_STATEMENT.md)
-- [Arquitectura](docs/ARQUITECTURA.png)
+- [Arquitectura](docs/Arquitectura.png)
 - [Prototipo](docs/PROTOTIPO.MD)
 
 ## Ejecuci√≥n
