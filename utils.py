@@ -18,7 +18,6 @@ def normalize_name_for_match(s: str) -> str:
     s = s.replace('-', ' ')
     s = s.replace('/', ' ')
     s = re.sub(r'[^0-9A-Za-z\s]', '', s)         
-    s = re.sub(r'\b(the|of|and|de|del|la|el|plurinational|state)\b', '', s, flags=re.I)
     s = re.sub(r'\s+', ' ', s)                  
     return s.strip().lower()
 

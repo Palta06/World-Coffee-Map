@@ -19,6 +19,9 @@ def load_geojson(path: Path):
 def load_csv(path: Path):
     return pd.read_csv(path)
 
+if not 'selected_country' in st.session_state:  
+    st.session_state['selected_country'] = None
+
 class DataCleaner:
 
     def strip_accents(self, s: str) -> str:
@@ -37,7 +40,6 @@ class DataCleaner:
         s = s.replace('-', ' ')
         s = s.replace('/', ' ')
         s = re.sub(r'[^0-9A-Za-z\s]', '', s)
-        s = re.sub(r'\b(the|of|and|de|del|la|el|plurinational|state)\b', '', s, flags=re.I)
         s = re.sub(r'\s+', ' ', s)
         return s.strip().lower()
     
@@ -181,9 +183,7 @@ map_df["geo_name"] = map_df["Country"].map(country_map)
 
 map_df["plot_location"] = map_df["geo_name"].where(map_df["geo_name"].notna(), map_df["Country"])
 
-# st.write(f"**Métrica:** {metric}    •    **Año:** {selected_year}" + (f"    •    **Tipo:** {selected_type}" if selected_type != "Todos" else ""))
-
-center_column, right_column = st.columns([3, 2])
+left_column, center_column, right_column = st.columns([2, 4, 3])
 
 with center_column:
     fig = px.choropleth(
@@ -208,14 +208,64 @@ with center_column:
     if len(event.selection.points):
         selected_point = event.selection.points[0]
         selected_country = selected_point['properties']['name']
-        st.markdown(f'**Pais seleccionado: {selected_country}**')
+        st.session_state['selected_country'] = selected_country
+    else:
+        st.session_state['selected_country'] = None
+
+with left_column.container(border=True):
+
+    selected_country = st.session_state['selected_country']
+    if selected_country:
+        st.write(f"### {selected_country}")
+
+        bags = map_df.loc[map_df['plot_location'] == selected_country, 'value'].values[0]
+        st.metric(label=metric, value=f"{bags/1_000_000:,.2f} M bolsas")
+
+        # Filtrar la data completa solo para ese país
+        df_country = df_long[df_long["Country"] == selected_country]
+
+        # Agrupar por año
+        hist_country = df_country.groupby("year")["value"].sum().reset_index()
+        hist_country["value_m"] = hist_country["value"] / 1_000_000
+
+        # Evitar gráfico vacío
+        if not hist_country.empty:
+            hist_fig = px.line(
+                hist_country,
+                x="year",
+                y="value_m",
+                labels={"year": "Año", "value_m": "Millones de bolsas"},
+                markers=True
+            )
+
+            hist_fig.update_traces(
+                line_color='#1f77b4',
+                marker=dict(size=8),
+                hovertemplate=f'Año: %{{x}}<br>{metric}: %{{y:.2f}}M bolsas<extra></extra>'
+            )
+
+            hist_fig.update_layout(
+                height=260,
+                margin=dict(l=0, r=0, t=40, b=0),
+                showlegend=False
+            )
+
+            st.plotly_chart(hist_fig, use_container_width=True)
+        else:
+            st.info("No hay datos históricos disponibles para este país.")
+
+
+    else:
+        st.write(f"### {metric} Mundial")
+        bags = map_df['value'].sum()
+        st.metric(label=metric, value=f"{bags/1_000_000:,.2f} M bolsas")
 
 with right_column:
 
     label_dict = { 'Producción': 'Productores', 'Consumo': 'en Consumo', 'Exportación': 'Exportadores' } 
     st.markdown(f"## Top 10 Países {label_dict.get(metric, '')}")
 
-    chart_data = map_df.sort_values("value", ascending=True).head(10)
+    chart_data = map_df.sort_values("value", ascending=True).tail(10)
 
     chart_data = chart_data.copy()
     chart_data['value_m'] = chart_data['value'] / 1_000_000
